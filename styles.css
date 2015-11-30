@@ -1,0 +1,9 @@
+body {
+	background-color: hsl(0, 0%, 92%);
+}
+
+.mdl-data-table {
+	float: left;
+	margin: 1em;
+	background-color: hsl(0, 0%, 96%);
+}
