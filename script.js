@@ -1,79 +1,78 @@
 'use strict';
 
+var conf = [];
+var checkedList = {};
+var $pageContent = $('.page-content');
+var prefix = 'rth-';
+
+function getRandomId() {
+	return crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
+}
+
 function save() {
-	let data = {};
-	$('input[type=checkbox]').toArray().forEach(checkbox => {
-		if (checkbox.checked) {
-			data[checkbox.getAttribute('id')] = checkbox.checked;
-		}
-	});
-	console.log(data);
-	localStorage.setItem('checked', JSON.stringify(data));
-}
-
-function load() {
-	let data = JSON.parse(localStorage.getItem('checked') || '{}');
-	for (let checkboxID in data) {
-		document.getElementById(checkboxID).checked = data[checkboxID];
-	}
-}
-
-function init() {
+	let checkedData = {};
 	$('table').toArray().forEach(table => {
-		let tableId = table.getAttribute('id');
-		let $table = $(table);
-		let columns = $table.find('thead th').toArray().slice(1);
-		let characters = columns.map(col => col.textContent);
-		$table.find('tbody tr').toArray().forEach(line => {
-			let $line = $(line);
-			let lineName = $line.find('td')[0].textContent;
-			let checkboxes = $line.find('td input[type=checkbox]').toArray();
-			checkboxes.forEach((checkbox, index) => {
-				let id = tableId + '|' + lineName + '|' + characters[index];
-				checkbox.setAttribute('id', id);
-
-			})
+		$(table).find('tbody > tr').toArray().forEach((line, lineIndex) => {
+			$(line).find('td input[type=checkbox]').toArray().forEach((checkbox, columnIndex) => {
+				if (checkbox.checked) {
+					checkedData[$(table).data('id') + '|' + lineIndex + '|' + columnIndex] = true;
+				}
+			});
 		});
 	});
+	localStorage.setItem(prefix + 'checked', JSON.stringify(checkedData));
 }
 
-function addTable(id) {
-	let $table = $('<table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp"><thead><tr><th class="mdl-data-table__cell--non-numeric"></th></tr></thead><tbody></tbody></table>');
-	$table.attr('id', id);
-	$table.appendTo(document.body);
+function loadConf() {
+	conf = JSON.parse(localStorage.getItem(prefix + 'tables') || '[]');
+	checkedList = JSON.parse(localStorage.getItem(prefix + 'checked') || '{}');
 }
-function addLines(tableId, names) {
-	names.forEach(name => addLine(tableId, name));
-}
-function addLine(tableId, name) {
-	let $table = $('#' + tableId);
-	let columns = $table.find('thead th').toArray().slice(1);
 
+function renderLine($table, index, name, tableConf) {
 	let $line = $('<tr><td class="mdl-data-table__cell--non-numeric"></td></tr>');
-	$line.find('>').text(name);
+	$line.find('>td').text(name);
 	let html = '<td class="mdl-data-table__cell--non-numeric"><label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect"><input type="checkbox" class="mdl-checkbox__input"></label></td>';
-	columns.forEach(() => $(html).appendTo($line))
+	for (let i = 0; i < tableConf.columns.length; ++i) {
+		let $html = $(html);
+		if (checkedList[tableConf.id + '|' + index + '|' + i]) {
+			$html.find('input').prop('checked', true);
+		}
+		$html.appendTo($line);
+	}
 	$line.appendTo($table);
 }
-function addColumns(tableId, names) {
-	names.forEach(name => addColumn(tableId, name));
-}
-function addColumn(tableId, name) {
-	let $table = $('#' + tableId);
-
+function renderColumn($table, index, name, tableConf) {
 	let $head = $table.find('thead > tr');
 	let $column = $('<th class="mdl-data-table__cell--non-numeric"></th>');
 	$column.text(name);
 	$column.appendTo($head);
+}
+function render() {
+	$pageContent.empty();
+	conf.forEach(tableConf => {
+		let $table = $('<table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp"><thead><tr><th class="mdl-data-table__cell--non-numeric"></th></tr></thead><tbody></tbody></table>');
+		$table.data('id', tableConf.id);
 
-	let html = '<td class="mdl-data-table__cell--non-numeric"><label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect"><input type="checkbox" class="mdl-checkbox__input"></label></td>';
-	$table.find('tbody > tr').toArray().forEach(line => {
-		$(html).appendTo(line);
+		if (tableConf.columns && tableConf.lines) {
+			tableConf.columns.forEach((name, index) => renderColumn($table, index, name, tableConf));
+			tableConf.lines.forEach((name, index) => renderLine($table, index, name, tableConf));
+		}
+
+		$table.appendTo($pageContent);
 	});
 }
 
-// addXXXX ....
+function addTable(options) {
+	conf.push({
+		id: getRandomId(),
+		columns: options.columns,
+		lines: options.lines
+	});
+	localStorage.setItem(prefix + 'tables', JSON.stringify(conf));
+}
 
-init();
-$('input[type=checkbox]').change(event => save());
-load();
+$(document).on('change', 'table input[type=checkbox]', save);
+loadConf();
+render();
+
+// addTable({ columns: ['col1', 'col2', 'col3'], lines: ['l1', 'l2'] });
