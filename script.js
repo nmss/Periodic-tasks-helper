@@ -13,7 +13,7 @@ function save() {
 	localStorage.setItem(prefix + 'checked', JSON.stringify(checkedList));
 }
 
-function getExpirationDate(tableId, lineIndex, column) {
+function getExpirationDate(tableId, lineIndex) {
 	let table = conf.filter(table => table.id === tableId)[0];
 	let lineOptions = table.lines[lineIndex];
 	if (lineOptions.date) {
@@ -27,10 +27,10 @@ function getExpirationDate(tableId, lineIndex, column) {
 	return Infinity;
 }
 
-function checkCallback() {
-	let $td = $(this).closest('td');
+function checkCallback(event) {
+	let $td = $(event.target).closest('td');
 	let id = $td.prop('id');
-	if (this.checked) {
+	if (event.target.checked) {
 		let expirationDate = getExpirationDate.apply(null, id.split('|'));
 		checkedList[id] = expirationDate;
 	} else {
