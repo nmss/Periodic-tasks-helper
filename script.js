@@ -16,9 +16,15 @@ function save() {
 function getExpirationDate(tableId, lineIndex, column) {
 	let table = conf.filter(table => table.id === tableId)[0];
 	let lineOptions = table.lines[lineIndex];
-	if (lineOptions.time) {
-		return Date.now() + lineOptions.time * 1000;
+	if (lineOptions.date) {
+		let diff = Date.now() - lineOptions.date;
+		let timeToNext = lineOptions.freq * 1000 - diff % (lineOptions.freq * 1000);
+		return Date.now() + timeToNext;
 	}
+	if (lineOptions.freq) {
+		return Date.now() + lineOptions.freq * 1000;
+	}
+	return Infinity;
 }
 
 function checkCallback() {
@@ -52,10 +58,10 @@ function uncheck() {
 			};
 		}
 	}
-	if (next.date !== Infinity) {
-		let nextSecond = Math.ceil((next.date - Date.now()) / 1000) * 1000;
-		setTimeout(uncheck, nextSecond);
-	}
+
+	// we round the time to the next second to avoid potentialy doing multiple call in one second
+	let nextCheck = next.date === Infinity ? 5 * 60 * 1000 : Math.ceil((next.date - Date.now()) / 1000) * 1000;
+	setTimeout(uncheck, nextCheck);
 }
 
 function renderLine($table, index, line, tableConf) {
