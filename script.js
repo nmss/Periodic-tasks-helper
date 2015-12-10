@@ -10,17 +10,33 @@ function getRandomId() {
 }
 
 function save() {
-	let checkedData = {};
-	$('table').toArray().forEach(table => {
-		$(table).find('tbody > tr').toArray().forEach((line, lineIndex) => {
-			$(line).find('td input[type=checkbox]').toArray().forEach((checkbox, columnIndex) => {
-				if (checkbox.checked) {
-					checkedData[$(table).data('id') + '|' + lineIndex + '|' + columnIndex] = true;
-				}
-			});
-		});
-	});
-	localStorage.setItem(prefix + 'checked', JSON.stringify(checkedData));
+	localStorage.setItem(prefix + 'checked', JSON.stringify(checkedList));
+}
+
+function getExpirationDate(tableId, lineIndex, column) {
+	let table = conf.filter(table => table.id === tableId)[0];
+	let lineOptions = table.lines[lineIndex];
+	if (lineOptions.date) {
+		let diff = Date.now() - lineOptions.date;
+		let timeToNext = lineOptions.freq * 1000 - diff % (lineOptions.freq * 1000);
+		return Date.now() + timeToNext;
+	}
+	if (lineOptions.freq) {
+		return Date.now() + lineOptions.freq * 1000;
+	}
+	return Infinity;
+}
+
+function checkCallback() {
+	let $td = $(this).closest('td');
+	let id = $td.prop('id');
+	if (this.checked) {
+		let expirationDate = getExpirationDate.apply(null, id.split('|'));
+		checkedList[id] = expirationDate;
+	} else {
+		delete checkedList[id];
+	}
+	save();
 }
 
 function loadConf() {
@@ -28,20 +44,42 @@ function loadConf() {
 	checkedList = JSON.parse(localStorage.getItem(prefix + 'checked') || '{}');
 }
 
-function renderLine($table, index, name, tableConf) {
+function uncheck() {
+	let next = { date: Infinity };
+	for (let id in checkedList) {
+		let expirationDate = checkedList[id];
+		if (expirationDate < Date.now()) {
+			let checkbox = document.getElementById(id);
+			$(checkbox).find('input[type=checkbox]').click();
+		} else if (expirationDate < next.date) {
+			next = {
+				id,
+				date: expirationDate
+			};
+		}
+	}
+
+	// we round the time to the next second to avoid potentialy doing multiple call in one second
+	let nextCheck = next.date === Infinity ? 5 * 60 * 1000 : Math.ceil((next.date - Date.now()) / 1000) * 1000;
+	setTimeout(uncheck, nextCheck);
+}
+
+function renderLine($table, index, line, tableConf) {
 	let $line = $('<tr><td class="mdl-data-table__cell--non-numeric"></td></tr>');
-	$line.find('>td').text(name);
+	$line.find('>td').text(line.name);
 	let html = '<td class="mdl-data-table__cell--non-numeric"><label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect"><input type="checkbox" class="mdl-checkbox__input"></label></td>';
 	for (let i = 0; i < tableConf.columns.length; ++i) {
 		let $html = $(html);
-		if (checkedList[tableConf.id + '|' + index + '|' + i]) {
+		let id = tableConf.id + '|' + index + '|' + i;
+		$html.prop('id', id);
+		if (checkedList[id]) {
 			$html.find('input').prop('checked', true);
 		}
 		$html.appendTo($line);
 	}
 	$line.appendTo($table);
 }
-function renderColumn($table, index, name, tableConf) {
+function renderColumn($table, name) {
 	let $head = $table.find('thead > tr');
 	let $column = $('<th class="mdl-data-table__cell--non-numeric"></th>');
 	$column.text(name);
@@ -54,8 +92,8 @@ function render() {
 		$table.data('id', tableConf.id);
 
 		if (tableConf.columns && tableConf.lines) {
-			tableConf.columns.forEach((name, index) => renderColumn($table, index, name, tableConf));
-			tableConf.lines.forEach((name, index) => renderLine($table, index, name, tableConf));
+			tableConf.columns.forEach(name => renderColumn($table, name));
+			tableConf.lines.forEach((line, index) => renderLine($table, index, line, tableConf));
 		}
 
 		$table.appendTo($pageContent);
@@ -71,8 +109,9 @@ function addTable(options) {
 	localStorage.setItem(prefix + 'tables', JSON.stringify(conf));
 }
 
-$(document).on('change', 'table input[type=checkbox]', save);
+$(document).on('change', 'table input[type=checkbox]', checkCallback);
 loadConf();
 render();
+uncheck();
 
 // addTable({ columns: ['col1', 'col2', 'col3'], lines: ['l1', 'l2'] });
