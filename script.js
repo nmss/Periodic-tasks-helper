@@ -17,7 +17,7 @@ function getExpirationDate(tableId, lineIndex) {
 	let table = conf.filter(table => table.id === tableId)[0];
 	let lineOptions = table.lines[lineIndex];
 	if (lineOptions.date) {
-		let diff = Date.now() - lineOptions.date;
+		let diff = lineOptions.date ? Date.now() - lineOptions.date : 0;
 		let timeToNext = lineOptions.freq * 1000 - diff % (lineOptions.freq * 1000);
 		return Date.now() + timeToNext;
 	}
@@ -109,9 +109,11 @@ function addTable(options) {
 	localStorage.setItem(prefix + 'tables', JSON.stringify(conf));
 }
 
-$(document).on('change', 'table input[type=checkbox]', checkCallback);
-loadConf();
-render();
-uncheck();
+function init() {
+	$(document).on('change', 'table input[type=checkbox]', checkCallback);
+	loadConf();
+	render();
+	uncheck();
+}
 
-// addTable({ columns: ['col1', 'col2', 'col3'], lines: ['l1', 'l2'] });
+init();
