@@ -4,12 +4,36 @@ body,
 }
 
 .mdl-layout__header {
-	background-color: hsl(0, 0%, 85%);
 	box-shadow: 0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.2),0 1px 5px 0 rgba(0,0,0,.12);
 }
 
 .mdl-data-table {
-	float: left;
+	display: inline-table;
 	margin: 1em;
 	background-color: hsl(0, 0%, 96%);
+}
+
+.mdl-data-table td {
+	vertical-align: middle;
+	padding-top: 0;
+}
+
+.mdl-data-table .checked {
+	font-weight: bold;
+}
+
+#add {
+	margin: 2em;
+	vertical-align: top;
+}
+
+body:not(.editMode) .mdl-data-table thead,
+body:not(.editMode) #add {
+	display: none;
+}
+
+@media screen and (max-width: 1024px) {
+	.mdl-data-table:first-of-type {
+		margin-left: 56px;
+	}
 }
