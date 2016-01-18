@@ -3,6 +3,7 @@
 var conf = [];
 var checkedList = {};
 var $pageContent = $('.page-content');
+var $addButton = $('#add');
 var prefix = 'rth-';
 var checkedButtonStyle = 'mdl-button--primary';
 
@@ -117,8 +118,9 @@ function render() {
 			tableConf.lines.forEach((line, index) => renderLine($table, index, line, tableConf));
 		}
 
-		$table.appendTo($pageContent);
+		$table.insertBefore($addButton);
 	});
+	componentHandler.upgradeDom();
 }
 
 function addTable(options) {
@@ -131,8 +133,63 @@ function addTable(options) {
 	render();
 }
 
+function editMode(event) {
+	if (event.target.checked) {
+		$(document.body).addClass('editMode');
+	} else {
+		$(document.body).removeClass('editMode');
+	}
+}
+
+function add() {
+	addTable({
+		columns: ['col1', 'col2', 'col3'],
+		lines: [
+			{ name: 'l1' },
+			{ name: 'l2' }
+		]
+	});
+}
+
+function deleteTable(id) {
+	conf = conf.filter(table => table.id !== id);
+	saveConf();
+
+	for (var key in checkedList) {
+		if (key.split('|')[0] === id) {
+			delete checkedList[key];
+		}
+	}
+	saveState();
+
+	render();
+}
+
+function addLine(tableId) {
+	var tableConf = conf.filter(table => table.id === tableId)[0];
+	tableConf.lines.push({ name: '...' });
+	saveConf();
+	render();
+}
+
+function addColumn(tableId) {
+	var tableConf = conf.filter(table => table.id === tableId)[0];
+	tableConf.columns.push('...');
+	saveConf();
+	render();
+}
+
+function getTableIdFromEvent(event) {
+	return $(event.currentTarget).closest('table').data('id');
+}
+
 function init() {
 	$(document).on('click', 'table td > button', checkCallback);
+	$(document).on('click', 'table .deleteTable', event => deleteTable(getTableIdFromEvent(event)));
+	$(document).on('click', 'table .addLine', event => addLine(getTableIdFromEvent(event)));
+	$(document).on('click', 'table .addColumn', event => addColumn(getTableIdFromEvent(event)));
+	$('#editMode').on('change', editMode);
+	$addButton.click(add);
 	load();
 	render();
 	uncheck();

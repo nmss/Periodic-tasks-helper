@@ -9,6 +9,7 @@
 	"undef": true,
 	"unused": true,
 	"globals": {
+		"componentHandler": false,
 		"crypto": false
 	}
 }
