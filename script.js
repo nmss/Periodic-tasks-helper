@@ -9,8 +9,12 @@ function getRandomId() {
 	return crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
 }
 
-function save() {
-	localStorage.setItem(prefix + 'checked', JSON.stringify(checkedList));
+function saveState() {
+	localStorage.setItem(prefix + 'checked', JSON.stringify(checkedList, (key, value) => value === Infinity ? '∞' : value));
+}
+
+function saveConf() {
+	localStorage.setItem(prefix + 'tables', JSON.stringify(conf));
 }
 
 function getExpirationDate(tableId, lineIndex) {
@@ -36,12 +40,12 @@ function checkCallback(event) {
 	} else {
 		delete checkedList[id];
 	}
-	save();
+	saveState();
 }
 
-function loadConf() {
+function load() {
 	conf = JSON.parse(localStorage.getItem(prefix + 'tables') || '[]');
-	checkedList = JSON.parse(localStorage.getItem(prefix + 'checked') || '{}');
+	checkedList = JSON.parse(localStorage.getItem(prefix + 'checked') || '{}', (key, value) => value === '∞' ? Infinity : value);
 }
 
 function uncheck() {
@@ -106,12 +110,13 @@ function addTable(options) {
 		columns: options.columns,
 		lines: options.lines
 	});
-	localStorage.setItem(prefix + 'tables', JSON.stringify(conf));
+	saveConf();
+	render();
 }
 
 function init() {
 	$(document).on('change', 'table input[type=checkbox]', checkCallback);
-	loadConf();
+	load();
 	render();
 	uncheck();
 }
