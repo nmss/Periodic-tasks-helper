@@ -59,7 +59,7 @@ function uncheck() {
 		let expirationDate = checkedList[id];
 		if (expirationDate < Date.now()) {
 			let checkbox = document.getElementById(id);
-			$(checkbox).find('input[type=checkbox]').click();
+			$(checkbox).find('button').click();
 		} else if (expirationDate < next.date) {
 			next = {
 				id,
