@@ -3,8 +3,9 @@
 
 <head>
 	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Recurring tasks helper</title>
-	<link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.6/material.indigo-pink.min.css">
+	<link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.6/material.light_green-light_blue.min.css">
 	<link rel="stylesheet" href="styles.css">
 	<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
 	<script src="https://storage.googleapis.com/code.getmdl.io/1.0.6/material.min.js"></script>
@@ -13,22 +14,29 @@
 
 <body>
 	<div class="mdl-layout mdl-js-layout">
-		<!--<header class="mdl-layout__header mdl-layout__header--scroll">
+		<header class="mdl-layout__header mdl-layout__header--scroll">
 			<div class="mdl-layout__header-row">
 				<span class="mdl-layout-title">Title</span>
 				<div class="mdl-layout-spacer"></div>
 				<nav class="mdl-navigation">
-					<a class="mdl-navigation__link" href="">Link</a>
+					<label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="editMode">
+						<input type="checkbox" id="editMode" class="mdl-switch__input">
+						<span class="mdl-switch__label">Mode édition</span>
+					</label>
 				</nav>
 			</div>
-		</header>-->
-		<!--<div class="mdl-layout__drawer">
+		</header>
+		<div class="mdl-layout__drawer">
 			<span class="mdl-layout-title">Title</span>
 			<nav class="mdl-navigation">
+				<a class="mdl-navigation__link" href="https://github.com/nmss/Recurring-tasks-helper">Code source</a>
 			</nav>
-		</div>-->
+		</div>
 		<main class="mdl-layout__content">
 			<div class="page-content">
+				<button id="add" class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
+					<i class="material-icons">add</i>
+				</button>
 			</div>
 		</main>
 	</div>

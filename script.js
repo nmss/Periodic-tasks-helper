@@ -3,14 +3,20 @@
 var conf = [];
 var checkedList = {};
 var $pageContent = $('.page-content');
+var $addButton = $('#add');
 var prefix = 'rth-';
+var checkedButtonStyle = 'mdl-button--primary';
 
 function getRandomId() {
 	return crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
 }
 
-function save() {
-	localStorage.setItem(prefix + 'checked', JSON.stringify(checkedList));
+function saveState() {
+	localStorage.setItem(prefix + 'checked', JSON.stringify(checkedList, (key, value) => value === Infinity ? '∞' : value));
+}
+
+function saveConf() {
+	localStorage.setItem(prefix + 'tables', JSON.stringify(conf));
 }
 
 function getExpirationDate(tableId, lineIndex) {
@@ -28,20 +34,23 @@ function getExpirationDate(tableId, lineIndex) {
 }
 
 function checkCallback(event) {
-	let $td = $(event.target).closest('td');
+	let $button = $(event.currentTarget);
+	let $td = $button.closest('td');
 	let id = $td.prop('id');
-	if (event.target.checked) {
+	if (checkedList[id]) {
+		delete checkedList[id];
+		$button.removeClass(checkedButtonStyle);
+	} else {
 		let expirationDate = getExpirationDate.apply(null, id.split('|'));
 		checkedList[id] = expirationDate;
-	} else {
-		delete checkedList[id];
+		$button.addClass(checkedButtonStyle);
 	}
-	save();
+	saveState();
 }
 
-function loadConf() {
+function load() {
 	conf = JSON.parse(localStorage.getItem(prefix + 'tables') || '[]');
-	checkedList = JSON.parse(localStorage.getItem(prefix + 'checked') || '{}');
+	checkedList = JSON.parse(localStorage.getItem(prefix + 'checked') || '{}', (key, value) => value === '∞' ? Infinity : value);
 }
 
 function uncheck() {
@@ -65,39 +74,53 @@ function uncheck() {
 }
 
 function renderLine($table, index, line, tableConf) {
-	let $line = $('<tr><td class="mdl-data-table__cell--non-numeric"></td></tr>');
-	$line.find('>td').text(line.name);
-	let html = '<td class="mdl-data-table__cell--non-numeric"><label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect"><input type="checkbox" class="mdl-checkbox__input"></label></td>';
+	let $line = $(`<tr><td class="mdl-data-table__cell--non-numeric"><label>${line.name}</label></td></tr>`);
+	let html = `<td class="mdl-data-table__cell--non-numeric">
+		<button class="mdl-button mdl-js-button mdl-js-ripple-effect"></button>
+	</td>`;
 	for (let i = 0; i < tableConf.columns.length; ++i) {
 		let $html = $(html);
 		let id = tableConf.id + '|' + index + '|' + i;
 		$html.prop('id', id);
+		var $button = $html.find('button');
+		$button.text(tableConf.columns[i]);
 		if (checkedList[id]) {
-			$html.find('input').prop('checked', true);
+			$button.addClass(checkedButtonStyle);
 		}
 		$html.appendTo($line);
 	}
 	$line.appendTo($table);
 }
-function renderColumn($table, name) {
-	let $head = $table.find('thead > tr');
-	let $column = $('<th class="mdl-data-table__cell--non-numeric"></th>');
-	$column.text(name);
-	$column.appendTo($head);
-}
 function render() {
-	$pageContent.empty();
+	$pageContent.find('table').remove();
+
 	conf.forEach(tableConf => {
-		let $table = $('<table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp"><thead><tr><th class="mdl-data-table__cell--non-numeric"></th></tr></thead><tbody></tbody></table>');
+		let additionalHeadCells = tableConf.columns.map(columnName => `<th>${columnName}</th>`);
+		let $table = $(`<table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp">
+			<thead><tr>
+				<th class="mdl-data-table__cell--non-numeric">
+					<button id="menu-${tableConf.id}" class="mdl-button mdl-js-button mdl-button--icon">
+						<i class="material-icons">more_vert</i>
+					</button>
+					<ul class="mdl-menu mdl-menu--bottom-left mdl-js-menu mdl-js-ripple-effect" for="menu-${tableConf.id}">
+						<li class="mdl-menu__item addLine">Ajouter une ligne</li>
+						<li class="mdl-menu__item addColumn">Ajouter une colonne</li>
+						<li class="mdl-menu__item deleteTable">Supprimer le tableau</li>
+					</ul>
+				</th>
+				${additionalHeadCells.join('') }
+			</tr></thead>
+			<tbody></tbody>
+		</table>`);
 		$table.data('id', tableConf.id);
 
 		if (tableConf.columns && tableConf.lines) {
-			tableConf.columns.forEach(name => renderColumn($table, name));
 			tableConf.lines.forEach((line, index) => renderLine($table, index, line, tableConf));
 		}
 
-		$table.appendTo($pageContent);
+		$table.insertBefore($addButton);
 	});
+	componentHandler.upgradeDom();
 }
 
 function addTable(options) {
@@ -106,12 +129,73 @@ function addTable(options) {
 		columns: options.columns,
 		lines: options.lines
 	});
-	localStorage.setItem(prefix + 'tables', JSON.stringify(conf));
+	saveConf();
+	render();
+}
+
+function editMode(event) {
+	if (event.target.checked) {
+		$(document.body).addClass('editMode');
+	} else {
+		$(document.body).removeClass('editMode');
+	}
+}
+
+function add() {
+	addTable({
+		columns: [],
+		lines: []
+	});
+}
+
+function deleteTable(id) {
+	conf = conf.filter(table => table.id !== id);
+	saveConf();
+
+	for (var key in checkedList) {
+		if (key.split('|')[0] === id) {
+			delete checkedList[key];
+		}
+	}
+	saveState();
+
+	render();
+}
+
+function addLine(tableId) {
+	var label = prompt('Label de la ligne ?');
+	if (!label) {
+		return;
+	}
+	var tableConf = conf.filter(table => table.id === tableId)[0];
+	tableConf.lines.push({ name: label });
+	saveConf();
+	render();
+}
+
+function addColumn(tableId) {
+	var label = prompt('Label de la colonne ?');
+	if (!label) {
+		return;
+	}
+	var tableConf = conf.filter(table => table.id === tableId)[0];
+	tableConf.columns.push(label);
+	saveConf();
+	render();
+}
+
+function getTableIdFromEvent(event) {
+	return $(event.currentTarget).closest('table').data('id');
 }
 
 function init() {
-	$(document).on('change', 'table input[type=checkbox]', checkCallback);
-	loadConf();
+	$(document).on('click', 'table td > button', checkCallback);
+	$(document).on('click', 'table .deleteTable', event => deleteTable(getTableIdFromEvent(event)));
+	$(document).on('click', 'table .addLine', event => addLine(getTableIdFromEvent(event)));
+	$(document).on('click', 'table .addColumn', event => addColumn(getTableIdFromEvent(event)));
+	$('#editMode').on('change', editMode);
+	$addButton.click(add);
+	load();
 	render();
 	uncheck();
 }
