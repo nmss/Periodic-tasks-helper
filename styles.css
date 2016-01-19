@@ -13,6 +13,10 @@ body,
 	background-color: hsl(0, 0%, 96%);
 }
 
+.mdl-data-table th {
+	text-align: center;
+}
+
 .mdl-data-table td {
 	vertical-align: middle;
 	padding-top: 0;
@@ -20,6 +24,10 @@ body,
 
 .mdl-data-table .checked {
 	font-weight: bold;
+}
+
+.mdl-button {
+	text-transform: none;
 }
 
 #add {

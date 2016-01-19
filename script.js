@@ -143,11 +143,8 @@ function editMode(event) {
 
 function add() {
 	addTable({
-		columns: ['col1', 'col2', 'col3'],
-		lines: [
-			{ name: 'l1' },
-			{ name: 'l2' }
-		]
+		columns: [],
+		lines: []
 	});
 }
 
@@ -166,15 +163,23 @@ function deleteTable(id) {
 }
 
 function addLine(tableId) {
+	var label = prompt('Label de la ligne ?');
+	if (!label) {
+		return;
+	}
 	var tableConf = conf.filter(table => table.id === tableId)[0];
-	tableConf.lines.push({ name: '...' });
+	tableConf.lines.push({ name: label });
 	saveConf();
 	render();
 }
 
 function addColumn(tableId) {
+	var label = prompt('Label de la colonne ?');
+	if (!label) {
+		return;
+	}
 	var tableConf = conf.filter(table => table.id === tableId)[0];
-	tableConf.columns.push('...');
+	tableConf.columns.push(label);
 	saveConf();
 	render();
 }
