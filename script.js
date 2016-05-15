@@ -1,11 +1,12 @@
 'use strict';
 
-var conf = [];
-var checkedList = {};
-var $pageContent = $('.page-content');
-var $addButton = $('#add');
-var prefix = 'rth-';
-var checkedButtonStyle = 'mdl-button--primary';
+let conf = [];
+let checkedList = {};
+const $pageContent = $('.page-content');
+const $addButton = $('#add');
+const prefix = 'rth-';
+const checkedButtonStyle = 'mdl-button--primary';
+let uncheckTimeoutId;
 
 function getRandomId() {
 	return crypto.getRandomValues(new Uint32Array(1))[0].toString(36);
@@ -20,11 +21,11 @@ function saveConf() {
 }
 
 function getExpirationDate(tableId, lineIndex) {
-	let table = conf.filter(table => table.id === tableId)[0];
-	let lineOptions = table.lines[lineIndex];
+	const table = conf.filter(table => table.id === tableId)[0];
+	const lineOptions = table.lines[lineIndex];
 	if (lineOptions.date) {
-		let diff = lineOptions.date ? Date.now() - lineOptions.date : 0;
-		let timeToNext = lineOptions.freq * 1000 - diff % (lineOptions.freq * 1000);
+		const diff = lineOptions.date ? Date.now() - lineOptions.date : 0;
+		const timeToNext = lineOptions.freq * 1000 - diff % (lineOptions.freq * 1000);
 		return Date.now() + timeToNext;
 	}
 	if (lineOptions.freq) {
@@ -34,14 +35,14 @@ function getExpirationDate(tableId, lineIndex) {
 }
 
 function checkCallback(event) {
-	let $button = $(event.currentTarget);
-	let $td = $button.closest('td');
-	let id = $td.prop('id');
+	const $button = $(event.currentTarget);
+	const $td = $button.closest('td');
+	const id = $td.prop('id');
 	if (checkedList[id]) {
 		delete checkedList[id];
 		$button.removeClass(checkedButtonStyle);
 	} else {
-		let expirationDate = getExpirationDate.apply(null, id.split('|'));
+		const expirationDate = getExpirationDate.apply(null, id.split('|'));
 		checkedList[id] = expirationDate;
 		$button.addClass(checkedButtonStyle);
 	}
@@ -69,20 +70,22 @@ function uncheck() {
 	}
 
 	// we round the time to the next second to avoid potentialy doing multiple call in one second
-	let nextCheck = next.date === Infinity ? 5 * 60 * 1000 : Math.ceil((next.date - Date.now()) / 1000) * 1000;
-	setTimeout(uncheck, nextCheck);
+	const nextCheck = next.date === Infinity ? 5 * 60 * 1000 : Math.ceil((next.date - Date.now()) / 1000) * 1000;
+	console.log(`Next uncheck in ${Math.round(nextCheck/1000)}s`);
+	clearTimeout(uncheckTimeoutId);
+	uncheckTimeoutId = setTimeout(uncheck, nextCheck);
 }
 
 function renderLine($table, index, line, tableConf) {
-	let $line = $(`<tr><td class="mdl-data-table__cell--non-numeric"><label>${line.name}</label></td></tr>`);
-	let html = `<td class="mdl-data-table__cell--non-numeric">
+	const $line = $(`<tr><td class="mdl-data-table__cell--non-numeric"><label>${line.name}</label></td></tr>`);
+	const html = `<td class="mdl-data-table__cell--non-numeric">
 		<button class="mdl-button mdl-js-button mdl-js-ripple-effect"></button>
 	</td>`;
 	for (let i = 0; i < tableConf.columns.length; ++i) {
 		let $html = $(html);
 		let id = tableConf.id + '|' + index + '|' + i;
 		$html.prop('id', id);
-		var $button = $html.find('button');
+		let $button = $html.find('button');
 		$button.text(tableConf.columns[i]);
 		if (checkedList[id]) {
 			$button.addClass(checkedButtonStyle);
@@ -95,8 +98,8 @@ function render() {
 	$pageContent.find('table').remove();
 
 	conf.forEach(tableConf => {
-		let additionalHeadCells = tableConf.columns.map(columnName => `<th>${columnName}</th>`);
-		let $table = $(`<table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp">
+		const additionalHeadCells = tableConf.columns.map(columnName => `<th>${columnName}</th>`);
+		const $table = $(`<table class="mdl-data-table mdl-js-data-table mdl-shadow--2dp">
 			<thead><tr>
 				<th class="mdl-data-table__cell--non-numeric">
 					<button id="menu-${tableConf.id}" class="mdl-button mdl-js-button mdl-button--icon">
@@ -152,7 +155,7 @@ function deleteTable(id) {
 	conf = conf.filter(table => table.id !== id);
 	saveConf();
 
-	for (var key in checkedList) {
+	for (const key in checkedList) {
 		if (key.split('|')[0] === id) {
 			delete checkedList[key];
 		}
@@ -163,22 +166,22 @@ function deleteTable(id) {
 }
 
 function addLine(tableId) {
-	var label = prompt('Label de la ligne ?');
+	const label = prompt('Label de la ligne ?');
 	if (!label) {
 		return;
 	}
-	var tableConf = conf.filter(table => table.id === tableId)[0];
+	const tableConf = conf.filter(table => table.id === tableId)[0];
 	tableConf.lines.push({ name: label });
 	saveConf();
 	render();
 }
 
 function addColumn(tableId) {
-	var label = prompt('Label de la colonne ?');
+	const label = prompt('Label de la colonne ?');
 	if (!label) {
 		return;
 	}
-	var tableConf = conf.filter(table => table.id === tableId)[0];
+	const tableConf = conf.filter(table => table.id === tableId)[0];
 	tableConf.columns.push(label);
 	saveConf();
 	render();
